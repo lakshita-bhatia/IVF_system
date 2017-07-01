@@ -5,7 +5,7 @@ const path = require('path')
 const nunjucks = require('nunjucks');
 const logger = require('morgan');
 const bodyParser = require('body-parser');
-//Import the mongoose module
+//Import the mongoose module- mongoose is a MongoDB Object Modelling Tool
 var mongoose = require('mongoose');
 var crypto = require('crypto');
 var jwt = require('jsonwebtoken');
@@ -30,29 +30,28 @@ db.on('error', console.error.bind(console, 'MongoDB connection error:'));
 var patient_data = new mongoose.Schema({
   name: String,
   age:{
-      type: int,
-      required:true
+      type: Number,
+      required:true,
   },
-  phone_number: int,
+  phone_number: Number,
   postal_address: String,
   doctor_comments:{
       type: String,
-      required: true
+      required: true,
   },
-  patient_history:{
-      type: String
-  },
+  patient_history: String,
   video_link:String,
   remote_centre_ID:{
-      type: String
-      required: true}
+      type: mongoose.Schema.Types.ObjectId,
+      required: true,
+}
 });
 
 var IVF_centres = new mongoose.Schema({
     doctor_name: String,
     address: String,
-    phone_number: int,
-    remote_centre_ID: [String],
+    phone_number: Number,
+    remote_centre_ID: [mongoose.Schema.Types.ObjectId],
     hash: String,
     salt: String
 });
@@ -60,8 +59,8 @@ var IVF_centres = new mongoose.Schema({
 var remote_centres = new mongoose.Schema({
     name: String,
     address: String,
-    phone_number: int,
-    IVF_ID: int,
+    phone_number: Number,
+    IVF_ID: mongoose.Schema.Types.ObjectId,
     hash: String,
     salt: String
 });
@@ -69,9 +68,12 @@ var remote_centres = new mongoose.Schema({
 // -------------MODELS END HERE-------------
 
 // var MyModel = mongoose.model('MyModel', MyModelSchema );
-
+mongoose.model('patient_data',patient_data);
+mongoose.model('IVF_centres',IVF_centres);
+mongoose.model('remote_centres',remote_centres);  //A model is a class with which we construct documents. Hence here we define models.
+                                                //right arguments are schema while left arguments are models.
 // mongoose models..
-var User = mongoose.model('User');
+var DB = mongoose.model('patient_data');
 // Generating password
 remote_centres.methods.setPassword = function(password){
   this.salt = crypto.randomBytes(16).toString('hex');
@@ -83,13 +85,16 @@ IVF_centres.methods.setPassword = function(password){
 };
 
 // Checking password
-userSchema.methods.validPassword = function(password) {
+remote_centres.methods.validPassword = function(password) {
   var hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64).toString('hex');
   return this.hash === hash;
 };
-
+IVF_centres.methods.validPassword = function(password) {
+  var hash = crypto.pbkdf2Sync(password, this.salt, 1000, 64).toString('hex');
+  return this.hash === hash;
+};
 // JWT Stuff
-userSchema.methods.generateJwt = function() {
+remote_centres.methods.generateJwt = function() {
   var expiry = new Date();
   expiry.setDate(expiry.getDate() + 7);
 
